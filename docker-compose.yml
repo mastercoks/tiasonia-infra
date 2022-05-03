@@ -52,7 +52,6 @@ services:
         - traefik.http.routers.traefik.entrypoints=web
         - traefik.http.routers.traefik.middlewares=auth
         - traefik.http.routers.traefik.rule=Host(`${DOMAIN:-localhost}`) && (PathPrefix(`/traefik`) || PathPrefix(`/api`))
-        # - traefik.http.routers.traefik.rule=Host(`monitor.${DOMAIN:-localhost}`)
         - traefik.http.middlewares.auth.basicauth.usersfile=/etc/htpasswd
         - traefik.http.services.traefik.loadbalancer.server.port=8080
         - traefik.http.routers.traefik.middlewares=traefik-strip
