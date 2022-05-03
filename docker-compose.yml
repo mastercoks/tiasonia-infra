@@ -51,9 +51,12 @@ services:
         - traefik.http.routers.traefik.service=api@internal
         - traefik.http.routers.traefik.entrypoints=web
         - traefik.http.routers.traefik.middlewares=auth
-        - traefik.http.routers.traefik.rule=(Host(`${DOMAIN:-localhost}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`)))
+        - traefik.http.routers.traefik.rule=Host(`${DOMAIN:-localhost}`) && (PathPrefix(`/traefik`) || PathPrefix(`/api`))
+        # - traefik.http.routers.traefik.rule=Host(`monitor.${DOMAIN:-localhost}`)
         - traefik.http.middlewares.auth.basicauth.usersfile=/etc/htpasswd
         - traefik.http.services.traefik.loadbalancer.server.port=8080
+        - traefik.http.routers.traefik.middlewares=traefik-strip
+        - traefik.http.middlewares.traefik-strip.stripprefix.prefixes=/traefik
         # Dummy service for Swarm port detection. The port can be any valid integer value.
         - traefik.http.services.dummy-svc.loadbalancer.server.port=9999
 
@@ -89,12 +92,30 @@ services:
     image: registry:2
     environment:
       REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data
-    ports:
-    - '5000:5000'
     volumes:
       - registry_data:/data
     networks:
       - public
+    depends_on: 
+      - traefik
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager
+      restart_policy:
+        condition: on-failure
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=public
+        - traefik.http.routers.registry.service=registry
+        - traefik.http.routers.registry.entrypoints=web
+        - traefik.http.routers.registry.rule=(Host(`${DOMAIN:-localhost}`) && PathPrefix(`/registry`))
+        - traefik.http.routers.registry.middlewares=registry-redirectregex, registry-replacepathregex  
+        - traefik.http.middlewares.registry-replacepathregex.replacepathregex.regex=^/registry/(.*)
+        - traefik.http.middlewares.registry-replacepathregex.replacepathregex.replacement=/$$1
+        - traefik.http.middlewares.registry-redirectregex.redirectregex.regex=^(.*)/registry$$
+        - traefik.http.middlewares.registry-redirectregex.redirectregex.replacement=$$1/registry/
+        - traefik.http.services.registry.loadbalancer.server.port=5000
 
 networks:
   private:
