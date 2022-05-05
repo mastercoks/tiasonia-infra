@@ -97,6 +97,8 @@ services:
       - public
     depends_on: 
       - traefik
+    ports:
+      - 5000:5000
     deploy:
       placement:
         constraints:
@@ -104,16 +106,6 @@ services:
       restart_policy:
         condition: on-failure
       labels:
-        - traefik.enable=true
-        - traefik.docker.network=public
-        - traefik.http.routers.registry.service=registry
-        - traefik.http.routers.registry.entrypoints=web
-        - traefik.http.routers.registry.rule=(Host(`${DOMAIN:-localhost}`) && PathPrefix(`/registry`))
-        - traefik.http.routers.registry.middlewares=registry-redirectregex, registry-replacepathregex  
-        - traefik.http.middlewares.registry-replacepathregex.replacepathregex.regex=^/registry/(.*)
-        - traefik.http.middlewares.registry-replacepathregex.replacepathregex.replacement=/$$1
-        - traefik.http.middlewares.registry-redirectregex.redirectregex.regex=^(.*)/registry$$
-        - traefik.http.middlewares.registry-redirectregex.redirectregex.replacement=$$1/registry/
         - traefik.http.services.registry.loadbalancer.server.port=5000
 
 networks:
